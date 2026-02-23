@@ -51,21 +51,22 @@ model Job {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  applications Application[]
 
   @@map("jobs")
 }
 
 model Application {
-  id        Int               @id @default(autoincrement())
-  userId    Int               @map("user_id")
-  jobId     Int               @map("job_id")
-  status    ApplicationStatus @default(PENDING)
-  createdAt DateTime          @default(now()) @map("created_at")
-  job       Job               @relation(fields: [jobId], references: [id])
-  user      User              @relation(fields: [userId], references: [id])
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique @map("user_id")
+  fullName    String?  @map("full_name")
+  phone       String?
+  competences String?
+  cv          String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  @@unique([userId, jobId])
+  user  User @relation(fields: [userId], references: [id])
+
   @@map("applications")
 }
 
