@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int           @id @default(autoincrement())
+  email          String        @unique
+  passwordHash   String        @map("password_hash")
+  role           Role          @default(CANDIDATE)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  applications   Application[]
+  profile        Profile?
+  pcRequests     PCRequest[]
+  inventoryItems Inventory[]
+
+  @@map("users")
+}
+
+model Profile {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique @map("user_id")
+  firstName   String   @map("first_name")
+  lastName    String   @map("last_name")
+  competences String?
+  cv          String?
+  phone       String?
+  user        User     @relation(fields: [userId], references: [id])
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("profiles")
+}
+
+model Job {
+  id          Int      @id @default(autoincrement())
+  title       String
+  companyName String   @map("company_name")
+  description String
+  location    String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  applications Application[]
+
+  @@map("jobs")
+}
+
+model Application {
+  id        Int               @id @default(autoincrement())
+  userId    Int               @map("user_id")
+  jobId     Int               @map("job_id")
+  status    ApplicationStatus @default(PENDING)
+  createdAt DateTime          @default(now()) @map("created_at")
+  job       Job               @relation(fields: [jobId], references: [id])
+  user      User              @relation(fields: [userId], references: [id])
+
+  @@unique([userId, jobId])
+  @@map("applications")
+}
+
+model PCRequest {
+  id                 Int                @id @default(autoincrement())
+  userId             Int                @map("user_id")
+  confirmationStatus ConfirmationStatus @default(PENDING) @map("confirmation_status")
+  justificationText  String
+  createdAt          DateTime           @default(now()) @map("created_at")
+  assignedPcId       Int?               @unique @map("assigned_pc_id")
+
+  user       User       @relation(fields: [userId], references: [id])
+  assignedPc Inventory? @relation(fields: [assignedPcId], references: [id])
+
+  @@unique([userId])
+  @@map("pc_requests")
+}
+
+model Inventory {
+  id           Int             @id @default(autoincrement())
+  serialNumber String          @unique
+  brand        String
+  model        String
+  status       InventoryStatus @default(IN_STOCK)
+
+  deliveredToId Int?
+  deliveredTo   User?      @relation(fields: [deliveredToId], references: [id])
+  pcRequest     PCRequest?
+
+  deliveredDate DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([status])
+}
+
+model Donation {
+  id            Int      @id @default(autoincrement())
+  fullName      String?
+  email         String?
+  amount        Float
+  currency      String
+  transactionId String   @unique
+  paymentMethod String?
+  status        String
+  createdAt     DateTime @default(now())
+
+  @@index([transactionId])
+}
+
+enum Role {
+  ADMIN
+  CANDIDATE
+}
+
+enum InventoryStatus {
+  IN_STOCK
+  DELIVERED
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  REJECTED
+}
+
+enum ConfirmationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
