@@ -77,6 +77,8 @@ model PCRequest {
   justificationText  String
   createdAt          DateTime           @default(now()) @map("created_at")
   assignedPcId       Int?               @unique @map("assigned_pc_id")
+  pcType             PcType
+  futureProject      String
 
   user       User       @relation(fields: [userId], references: [id])
   assignedPc Inventory? @relation(fields: [assignedPcId], references: [id])
