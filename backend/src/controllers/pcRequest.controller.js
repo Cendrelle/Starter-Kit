@@ -75,18 +75,30 @@ export const getMyPcRequest = async (req, res) => {
 export const getAllPcRequests = async (req, res) => {
   try {
     const requests = await prisma.pCRequest.findMany({
-      include: {
-        user: true,
-        assignedPc: true
-      },
-      orderBy: {
-        createdAt: "desc"
-      }
+        include: {
+            user: {
+            select: {
+                id: true,
+                email: true,
+                profile: {
+                select: {
+                    firstName: true,
+                    lastName: true
+                }
+                }
+            }
+            },
+            assignedPc: true
+        },
+        orderBy: {
+            createdAt: "desc"
+        }
     });
 
     res.json(requests);
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -96,9 +108,25 @@ export const updatePcRequestStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body; // APPROVED ou REJECTED
 
-    if (!["APPROVED", "REJECTED"].includes(status)) {
+    if (!["ACCEPTED", "REJECTED"].includes(status)) {
       return res.status(400).json({
         message: "Invalid status"
+      });
+    }
+
+    const request = await prisma.pCRequest.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!request) {
+      return res.status(404).json({
+        message: "Request not found"
+      });
+    }
+
+    if (request.confirmationStatus !== "PENDING") {
+      return res.status(400).json({
+        message: "Request already processed"
       });
     }
 
@@ -112,6 +140,7 @@ export const updatePcRequestStatus = async (req, res) => {
     res.json(updated);
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };

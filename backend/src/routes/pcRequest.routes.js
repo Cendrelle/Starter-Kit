@@ -6,17 +6,17 @@ import {
   updatePcRequestStatus
 } from "../controllers/pcRequest.controller.js";
 
-import authMiddleware from "../middleware/auth.middleware.js";
+import {authenticate} from "../middleware/auth.middleware.js";
 import adminMiddleware from "../middleware/admin.middleware.js";
 
 const router = express.Router();
 
 // 👤 CANDIDAT
-router.post("/", authMiddleware, createPcRequest);
-router.get("/me", authMiddleware, getMyPcRequest);
+router.post("/", authenticate, createPcRequest);
+router.get("/me", authenticate, getMyPcRequest);
 
 // 🛠 ADMIN
-router.get("/", authMiddleware, adminMiddleware, getAllPcRequests);
-router.patch("/:id", authMiddleware, adminMiddleware, updatePcRequestStatus);
+router.get("/", authenticate, adminMiddleware, getAllPcRequests);
+router.patch("/:id/status", authenticate, adminMiddleware, updatePcRequestStatus);
 
 export default router;
