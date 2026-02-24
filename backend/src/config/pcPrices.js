@@ -1,0 +1,5 @@
+export const PC_PRICES = {
+  BASIC: 150000,
+  STANDARD: 300000,
+  PREMIUM: 500000,
+};

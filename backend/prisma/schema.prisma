@@ -104,13 +104,21 @@ model Inventory {
 
 model Donation {
   id            Int      @id @default(autoincrement())
+
   fullName      String?
   email         String?
+
   amount        Float
   currency      String
+
+  type          DonationType
+  pcType        PcType?
+  percentage    Int?        // 100 ou 60 (null si cagnotte)
+
   transactionId String   @unique
   paymentMethod String?
   status        String
+
   createdAt     DateTime @default(now())
 
   @@index([transactionId])
@@ -136,4 +144,16 @@ enum ConfirmationStatus {
   PENDING
   ACCEPTED
   REJECTED
+}
+
+enum DonationType {
+  FULL_PC
+  PARTIAL_PC
+  COMMON_POOL
+}
+
+enum PcType {
+  BASIC
+  STANDARD
+  PREMIUM
 }
