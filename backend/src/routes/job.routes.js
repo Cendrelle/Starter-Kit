@@ -5,9 +5,10 @@ import {
   getJobs,
   getJobById,
   updateJob,
-  deleteJob
+  deleteJob,
 } from "../controllers/job.controller.js"
 import { authenticate, authorize } from "../middleware/auth.middleware.js"
+import { applyToJob } from "../controllers/jobApplication.controller.js"
 
 const router = express.Router()
 
@@ -16,5 +17,7 @@ router.get("/", getJobs)
 router.get("/:id", getJobById)
 router.put("/:id", authenticate, authorize("ADMIN"), updateJob)
 router.delete("/:id", authenticate, authorize("ADMIN"), deleteJob)
+// Postuler
+router.post("/:id/apply", applyToJob)
 
 export default router

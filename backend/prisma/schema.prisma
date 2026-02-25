@@ -51,6 +51,8 @@ model Job {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  jobApplications JobApplication[]
+
 
   @@map("jobs")
 }
@@ -77,8 +79,8 @@ model PCRequest {
   justificationText  String
   createdAt          DateTime           @default(now()) @map("created_at")
   assignedPcId       Int?               @unique @map("assigned_pc_id")
-  pcType             PcType
-  futureProject      String
+  pcType             PcType             @default(STANDARD)
+  futureProject      String             @default(" ")
 
   user       User       @relation(fields: [userId], references: [id])
   assignedPc Inventory? @relation(fields: [assignedPcId], references: [id])
@@ -124,6 +126,33 @@ model Donation {
   createdAt     DateTime @default(now())
 
   @@index([transactionId])
+}
+
+enum JobApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model JobApplication {
+  id          Int      @id @default(autoincrement())
+  jobId       Int      @map("job_id")
+
+  fullName    String   @map("full_name")
+  email       String
+  phone       String?
+  cv          String?   // URL ou chemin du fichier
+  message     String?
+
+  status      JobApplicationStatus @default(PENDING)
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  job         Job      @relation(fields: [jobId], references: [id])
+
+  @@map("job_applications")
+  @@unique([jobId, email])
 }
 
 enum Role {
