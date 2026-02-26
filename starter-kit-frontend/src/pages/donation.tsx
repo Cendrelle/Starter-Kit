@@ -8,6 +8,7 @@ import { formatFCFA } from '@/utils/currency';
 import { toast } from 'react-toastify';
 import { useLanguage } from '@/context/LanguageContext';
 import { HeartIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline';
+import { api } from '@/lib/api';
 
 export default function DonationPage() {
   const router = useRouter();
@@ -22,6 +23,12 @@ export default function DonationPage() {
   const [fullPayment, setFullPayment] = useState(false);
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState('');
+  const [donorForm, setDonorForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+  });
   const pcColorClass: Record<string, string> = {
     blue: 'bg-blue-100',
     green: 'bg-green-100',
@@ -47,16 +54,45 @@ export default function DonationPage() {
     return baseAmount;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setIsProcessing(true);
-    
-    // Simuler un paiement PayPal
-    setTimeout(() => {
+
+    try {
+      const txBase = `TX-${Date.now()}`;
+      if (selectedCategory === 'common') {
+        await api.post('/donations/common', {
+          fullName: isAnonymous ? undefined : donorForm.fullName,
+          email: isAnonymous ? undefined : donorForm.email,
+          amount: getTotalAmount(),
+          transactionId: txBase,
+          paymentMethod: 'PAYPAL',
+          currency: 'XOF',
+        });
+      } else {
+        const percentage = fullPayment ? 100 : 60;
+        const pcType = String(selectedCategory).toUpperCase();
+        for (let i = 0; i < quantity; i += 1) {
+          await api.post('/donations/pc', {
+            fullName: isAnonymous ? undefined : donorForm.fullName,
+            email: isAnonymous ? undefined : donorForm.email,
+            pcType,
+            percentage,
+            transactionId: `${txBase}-${i + 1}`,
+            paymentMethod: 'PAYPAL',
+            currency: 'XOF',
+          });
+        }
+      }
+
       toast.success('Don effectue avec succes ! Merci pour votre generosite.');
       setIsProcessing(false);
       router.push('/');
-    }, 2000);
+    } catch (err: any) {
+      setIsProcessing(false);
+      setError(err?.response?.data?.error || tr('Paiement impossible pour le moment.', 'Could not process donation right now.'));
+    }
   };
 
   return (
@@ -327,24 +363,32 @@ export default function DonationPage() {
                 </div>
 
                 {/* Contact Information */}
-                <div className="space-y-4 mb-8">
-                  <Input
-                    label={tr('Nom complet', 'Full name')}
-                    placeholder="Jean Dupont"
-                    required
-                  />
-                  <Input
-                    label="Email"
-                    type="email"
-                    placeholder="jean@example.com"
-                    required
-                  />
-                  <Input
-                    label={tr('Telephone', 'Phone')}
-                    type="tel"
-                    placeholder="+229 01 23 45 67"
-                  />
-                </div>
+                {!isAnonymous && (
+                  <div className="space-y-4 mb-8">
+                    <Input
+                      label={tr('Nom complet', 'Full name')}
+                      placeholder="Jean Dupont"
+                      value={donorForm.fullName}
+                      onChange={(e) => setDonorForm((prev) => ({ ...prev, fullName: e.target.value }))}
+                      required
+                    />
+                    <Input
+                      label="Email"
+                      type="email"
+                      placeholder="jean@example.com"
+                      value={donorForm.email}
+                      onChange={(e) => setDonorForm((prev) => ({ ...prev, email: e.target.value }))}
+                      required
+                    />
+                    <Input
+                      label={tr('Telephone', 'Phone')}
+                      type="tel"
+                      placeholder="+229 01 23 45 67"
+                      value={donorForm.phone}
+                      onChange={(e) => setDonorForm((prev) => ({ ...prev, phone: e.target.value }))}
+                    />
+                  </div>
+                )}
 
                 {/* Summary */}
                 <div className="bg-gray-50 p-6 rounded-lg mb-8">
@@ -381,6 +425,7 @@ export default function DonationPage() {
                     {isProcessing ? tr('Traitement...', 'Processing...') : `${tr('Confirmer le don de', 'Confirm donation of')} ${formatFCFA(getTotalAmount())}`}
                   </Button>
                 </div>
+                {error && <p className="text-sm text-red-600 text-center mt-4">{error}</p>}
 
                 <p className="text-xs text-gray-500 text-center mt-4">
                   {tr(

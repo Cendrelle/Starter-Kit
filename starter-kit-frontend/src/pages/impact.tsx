@@ -148,13 +148,13 @@ export default function ImpactPage() {
         </div>
       </section>
 
-      <section className="py-16 bg-gradient-to-r from-primary-700 to-blue-600">
+      <section className="py-16 bg-gradient-to-r from-primary-800 via-primary-700 to-primary-600">
         <div className="container-custom text-center">
           <h2 className="text-3xl md:text-4xl font-black text-white">{tx('impact.ctaTitle')}</h2>
-          <p className="mt-3 text-lg text-blue-100 max-w-2xl mx-auto">{tx('impact.ctaText')}</p>
+          <p className="mt-3 text-lg text-primary-100 max-w-2xl mx-auto">{tx('impact.ctaText')}</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link href="/donation">
-              <Button size="lg" className="bg-white text-primary-700 hover:bg-slate-100">
+              <Button size="lg" className="bg-amber-300 text-slate-900 hover:bg-amber-200 border border-amber-200">
                 {tx('header.donate')}
               </Button>
             </Link>

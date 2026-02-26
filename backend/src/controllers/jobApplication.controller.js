@@ -6,6 +6,7 @@ export const applyToJob = async (req, res) => {
   try {
     const jobId = parseInt(req.params.id)
     const { fullName, email, phone, message } = req.body
+    const normalizedEmail = String(email || "").trim().toLowerCase()
 
     const job = await prisma.job.findUnique({
       where: { id: jobId }
@@ -18,7 +19,7 @@ export const applyToJob = async (req, res) => {
         where: {
             jobId_email: {
             jobId,
-            email
+            email: normalizedEmail
             }
         }
     })
@@ -33,7 +34,7 @@ export const applyToJob = async (req, res) => {
       data: {
         jobId,
         fullName,
-        email,
+        email: normalizedEmail,
         phone,
         message
       }
@@ -96,6 +97,41 @@ export const updateJobApplicationStatus = async (req, res) => {
       updated
     })
 
+  } catch (error) {
+    return res.status(500).json({ message: "Erreur serveur" })
+  }
+}
+
+export const getMyJobApplications = async (req, res) => {
+  try {
+    const userId = req.user.userId
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    })
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur introuvable" })
+    }
+
+    const applications = await prisma.jobApplication.findMany({
+      where: { email: String(user.email || "").toLowerCase() },
+      include: {
+        job: {
+          select: {
+            id: true,
+            title: true,
+            companyName: true,
+            location: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    })
+
+    return res.status(200).json(applications)
   } catch (error) {
     return res.status(500).json({ message: "Erreur serveur" })
   }

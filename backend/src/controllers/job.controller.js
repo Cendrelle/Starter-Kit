@@ -55,3 +55,22 @@ export const deleteJob = async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 }
+
+export const updateJobStatus = async (req, res) => {
+  const { id } = req.params
+  const { isActive } = req.body
+
+  if (typeof isActive !== "boolean") {
+    return res.status(400).json({ message: "isActive must be a boolean" })
+  }
+
+  try {
+    const job = await prisma.job.update({
+      where: { id: Number(id) },
+      data: { isActive },
+    })
+    res.json(job)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}

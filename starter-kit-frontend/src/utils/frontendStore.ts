@@ -45,7 +45,7 @@ export interface FrontendStore {
   applications: JobApplication[];
 }
 
-const STORE_KEY = 'starterkit_frontend_store_v1';
+const STORE_KEY = 'starterkit_frontend_store_v2';
 const STORE_EVENT = 'starterkit-store-updated';
 
 const defaultState: FrontendStore = {
@@ -64,7 +64,7 @@ const defaultState: FrontendStore = {
       reason: 'Je n ai pas de machine personnelle pour coder.',
       professionalGoal: 'Devenir developpeur full stack.',
       motivation: 'Un PC me permettra de suivre les offres et de postuler.',
-      createdAt: new Date().toISOString(),
+      createdAt: '2026-01-10T08:00:00.000Z',
       decision: 'pending',
     },
     {
@@ -77,7 +77,7 @@ const defaultState: FrontendStore = {
       reason: 'Je partage actuellement un ordinateur en cyber cafe.',
       professionalGoal: 'Obtenir un stage en support IT.',
       motivation: 'Je veux postuler rapidement et produire mon portfolio.',
-      createdAt: new Date().toISOString(),
+      createdAt: '2026-01-15T10:30:00.000Z',
       decision: 'pending',
     },
   ],
@@ -93,7 +93,7 @@ const defaultState: FrontendStore = {
       contractType: 'internship',
       deadline: new Date('2026-04-20').toISOString(),
       status: 'active',
-      createdAt: new Date().toISOString(),
+      createdAt: '2026-01-08T09:00:00.000Z',
       recruiterEmail: 'recrutement@jobbooster.bj',
       salary: '120 000 FCFA/mois',
     },
@@ -108,7 +108,7 @@ const defaultState: FrontendStore = {
       contractType: 'internship',
       deadline: new Date('2026-05-10').toISOString(),
       status: 'active',
-      createdAt: new Date().toISOString(),
+      createdAt: '2026-01-12T11:15:00.000Z',
       recruiterEmail: 'hr@agenceimpact.bj',
       salary: '90 000 FCFA/mois',
     },
@@ -116,38 +116,137 @@ const defaultState: FrontendStore = {
   applications: [],
 };
 
+function cloneStore(store: FrontendStore): FrontendStore {
+  return {
+    ...store,
+    admin: { ...store.admin },
+    candidateSession: store.candidateSession ? { ...store.candidateSession } : null,
+    carouselImages: store.carouselImages.map((image) => ({ ...image })),
+    pcRequests: store.pcRequests.map((request) => ({ ...request })),
+    jobs: store.jobs.map((job) => ({
+      ...job,
+      requirements: [...job.requirements],
+      tags: [...job.tags],
+    })),
+    applications: store.applications.map((application) => ({ ...application })),
+  };
+}
+
+export function getDefaultFrontendStore(): FrontendStore {
+  return cloneStore(defaultState);
+}
+
 function isBrowser() {
   return typeof window !== 'undefined';
 }
 
 export function getFrontendStore(): FrontendStore {
-  if (!isBrowser()) return defaultState;
-
-  const raw = window.localStorage.getItem(STORE_KEY);
-  if (!raw) return defaultState;
+  if (!isBrowser()) return getDefaultFrontendStore();
 
   try {
+    const raw = window.localStorage.getItem(STORE_KEY);
+    if (!raw) return getDefaultFrontendStore();
+
     const parsed = JSON.parse(raw) as Partial<FrontendStore>;
+    const parsedCarousel = Array.isArray(parsed.carouselImages) ? parsed.carouselImages : [];
+    const parsedPcRequests = Array.isArray(parsed.pcRequests) ? parsed.pcRequests : [];
+    const parsedJobs = Array.isArray(parsed.jobs) ? parsed.jobs : [];
+    const parsedApplications = Array.isArray(parsed.applications) ? parsed.applications : [];
+
     return {
-      ...defaultState,
+      ...getDefaultFrontendStore(),
       ...parsed,
       admin: { ...defaultState.admin, ...(parsed.admin || {}) },
       candidateSession: parsed.candidateSession || null,
-      carouselImages: parsed.carouselImages || defaultState.carouselImages,
-      pcRequests: parsed.pcRequests || defaultState.pcRequests,
-      jobs: parsed.jobs || defaultState.jobs,
-      applications: parsed.applications || defaultState.applications,
-      language: parsed.language || 'fr',
+      carouselImages:
+        parsedCarousel.length > 0
+          ? parsedCarousel
+              .filter((item) => item && typeof item === 'object')
+              .map((item, index) => ({
+                id: typeof item.id === 'string' ? item.id : `carousel-${index + 1}`,
+                url: typeof item.url === 'string' ? item.url : '',
+                title: typeof item.title === 'string' ? item.title : '',
+                description: typeof item.description === 'string' ? item.description : '',
+                link: typeof item.link === 'string' ? item.link : '/donation',
+                order: typeof item.order === 'number' ? item.order : index + 1,
+                active: typeof item.active === 'boolean' ? item.active : true,
+              }))
+              .filter((item) => Boolean(item.url))
+          : defaultState.carouselImages,
+      pcRequests:
+        parsedPcRequests.length > 0
+          ? parsedPcRequests
+              .filter((item) => item && typeof item === 'object')
+              .map((item, index) => ({
+                id: typeof item.id === 'string' ? item.id : `pc-${index + 1}`,
+                candidateId: typeof item.candidateId === 'string' ? item.candidateId : '',
+                candidateName: typeof item.candidateName === 'string' ? item.candidateName : '',
+                candidateEmail: typeof item.candidateEmail === 'string' ? item.candidateEmail : '',
+                candidatePhone: typeof item.candidatePhone === 'string' ? item.candidatePhone : '',
+                category: item.category === 'basic' || item.category === 'standard' || item.category === 'premium' ? item.category : 'basic',
+                reason: typeof item.reason === 'string' ? item.reason : '',
+                professionalGoal: typeof item.professionalGoal === 'string' ? item.professionalGoal : '',
+                motivation: typeof item.motivation === 'string' ? item.motivation : '',
+                createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date('2026-01-01').toISOString(),
+                decision: item.decision === 'accepted' || item.decision === 'rejected' ? item.decision : 'pending',
+              }))
+          : defaultState.pcRequests,
+      jobs:
+        parsedJobs.length > 0
+          ? parsedJobs
+              .filter((item) => item && typeof item === 'object')
+              .map((item, index) => ({
+                id: typeof item.id === 'string' ? item.id : `job-${index + 1}`,
+                title: typeof item.title === 'string' ? item.title : 'Offre de stage',
+                company: typeof item.company === 'string' ? item.company : '',
+                description: typeof item.description === 'string' ? item.description : '',
+                requirements: Array.isArray(item.requirements) ? item.requirements.filter((v) => typeof v === 'string') : [],
+                tags: Array.isArray(item.tags) ? item.tags.filter((v) => typeof v === 'string') : [],
+                location: typeof item.location === 'string' ? item.location : '',
+                contractType:
+                  item.contractType === 'full-time' || item.contractType === 'part-time' || item.contractType === 'internship' || item.contractType === 'freelance'
+                    ? item.contractType
+                    : 'internship',
+                salary: typeof item.salary === 'string' ? item.salary : undefined,
+                deadline: typeof item.deadline === 'string' ? item.deadline : new Date('2026-12-31').toISOString(),
+                status: item.status === 'active' || item.status === 'expired' || item.status === 'draft' ? item.status : 'active',
+                createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date('2026-01-01').toISOString(),
+                recruiterEmail: typeof item.recruiterEmail === 'string' ? item.recruiterEmail : 'admin@starterkit.bj',
+              }))
+          : defaultState.jobs,
+      applications:
+        parsedApplications.length > 0
+          ? parsedApplications
+              .filter((item) => item && typeof item === 'object')
+              .map((item, index) => ({
+                id: typeof item.id === 'string' ? item.id : `app-${index + 1}`,
+                jobId: typeof item.jobId === 'string' ? item.jobId : '',
+                userId: typeof item.userId === 'string' ? item.userId : '',
+                fullName: typeof item.fullName === 'string' ? item.fullName : '',
+                email: typeof item.email === 'string' ? item.email : '',
+                phone: typeof item.phone === 'string' ? item.phone : '',
+                cvUrl: typeof item.cvUrl === 'string' ? item.cvUrl : '',
+                coverLetter: typeof item.coverLetter === 'string' ? item.coverLetter : '',
+                status:
+                  item.status === 'reviewed' || item.status === 'accepted' || item.status === 'rejected' ? item.status : 'pending',
+                appliedAt: typeof item.appliedAt === 'string' ? item.appliedAt : new Date('2026-01-01').toISOString(),
+              }))
+          : defaultState.applications,
+      language: parsed.language === 'en' ? 'en' : 'fr',
     };
   } catch {
-    return defaultState;
+    return getDefaultFrontendStore();
   }
 }
 
 export function setFrontendStore(next: FrontendStore) {
   if (!isBrowser()) return;
-  window.localStorage.setItem(STORE_KEY, JSON.stringify(next));
-  window.dispatchEvent(new CustomEvent(STORE_EVENT));
+  try {
+    window.localStorage.setItem(STORE_KEY, JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent(STORE_EVENT));
+  } catch {
+    // Ignore persistence failures (private mode, blocked storage).
+  }
 }
 
 export function updateFrontendStore(updater: (prev: FrontendStore) => FrontendStore) {

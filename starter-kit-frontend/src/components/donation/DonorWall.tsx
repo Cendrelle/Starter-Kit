@@ -1,4 +1,5 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { UserCircleIcon } from '@heroicons/react/24/solid';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS, fr } from 'date-fns/locale';
@@ -89,10 +90,14 @@ export const DonorWall: React.FC<DonorWallProps> = ({ donors }) => {
       </div>
 
       {donors.length > 5 && (
-        <button className="w-full mt-4 text-center text-primary-600 font-semibold hover:text-primary-700 transition-colors">
+        <Link
+          href="/cagnotte-commune"
+          className="block w-full mt-4 text-center text-primary-600 font-semibold hover:text-primary-700 transition-colors"
+        >
           {tr('Voir tous les donateurs', 'View all donors')}
-        </button>
+        </Link>
       )}
     </div>
   );
 };
+

@@ -13,6 +13,7 @@ interface CarouselManagementProps {
 export const CarouselManagement: React.FC<CarouselManagementProps> = ({ images, onChange }) => {
   const { tr } = useLanguage();
   const [showForm, setShowForm] = useState(false);
+  const [uploadName, setUploadName] = useState('');
   const [form, setForm] = useState({
     url: '',
     title: '',
@@ -33,7 +34,23 @@ export const CarouselManagement: React.FC<CarouselManagementProps> = ({ images, 
     };
     onChange([...images, next]);
     setForm({ url: '', title: '', description: '', link: '/donation' });
+    setUploadName('');
     setShowForm(false);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm((prev) => ({
+        ...prev,
+        url: String(reader.result || ''),
+      }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const toggleImage = (id: string) => {
@@ -57,7 +74,19 @@ export const CarouselManagement: React.FC<CarouselManagementProps> = ({ images, 
       </div>
 
       {showForm && (
-        <form onSubmit={addImage} className="rounded-xl border border-gray-200 p-4 grid md:grid-cols-2 gap-3">
+        <form onSubmit={addImage} className="rounded-xl border border-primary-100 p-4 grid md:grid-cols-2 gap-3">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {tr('Fichier image (PC ou telephone)', 'Image file (computer or phone)')}
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary-600 file:px-3 file:py-1.5 file:text-white"
+            />
+            {uploadName && <p className="mt-1 text-xs text-gray-500">{uploadName}</p>}
+          </div>
           <Input
             label={tr('URL image', 'Image URL')}
             value={form.url}
@@ -83,6 +112,11 @@ export const CarouselManagement: React.FC<CarouselManagementProps> = ({ images, 
             onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
             required
           />
+          {form.url && (
+            <div className="md:col-span-2 rounded-lg border border-dashed border-gray-300 p-2 bg-gray-50">
+              <Image src={form.url} alt={form.title || 'Preview'} width={1280} height={480} className="h-40 w-full object-contain rounded-md bg-gray-100" />
+            </div>
+          )}
           <div className="md:col-span-2 flex justify-end">
             <Button type="submit" size="sm">
               {tr('Ajouter', 'Add')}
@@ -98,7 +132,7 @@ export const CarouselManagement: React.FC<CarouselManagementProps> = ({ images, 
           </div>
         )}
         {images.map((image) => (
-          <div key={image.id} className={`rounded-xl border p-3 ${image.active ? 'border-gray-200' : 'border-gray-100 bg-gray-50'}`}>
+          <div key={image.id} className={`rounded-xl border p-3 ${image.active ? 'border-primary-100 bg-white' : 'border-slate-200 bg-slate-50'}`}>
             <div className="flex flex-col md:flex-row md:items-center gap-3">
               <Image
                 src={image.url}
@@ -114,14 +148,16 @@ export const CarouselManagement: React.FC<CarouselManagementProps> = ({ images, 
               </div>
               <div className="flex gap-2">
                 <button
+                  type="button"
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold ${
-                    image.active ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'
+                    image.active ? 'bg-slate-700 text-white' : 'bg-primary-700 text-white'
                   }`}
                   onClick={() => toggleImage(image.id)}
                 >
                   {image.active ? tr('Desactiver', 'Disable') : tr('Activer', 'Activate')}
                 </button>
                 <button
+                  type="button"
                   className="px-3 py-1.5 rounded-md bg-rose-600 text-white text-xs font-semibold"
                   onClick={() => removeImage(image.id)}
                 >

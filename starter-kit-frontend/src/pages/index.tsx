@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Carousel } from '@/components/ui/Carousel';
 import { DonorWall } from '@/components/donation/DonorWall';
@@ -6,6 +7,9 @@ import { useFrontendStore } from '@/hooks/useFrontendStore';
 import { MOCK_DONORS, MOCK_PARTNERS, MOCK_STATS } from '@/utils/constants';
 import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '@/components/ui/Button';
+import { PlatformOverviewStats } from '@/utils/types';
+import { api } from '@/lib/api';
+import { formatFCFA } from '@/utils/currency';
 import {
   ArrowTrendingUpIcon,
   CheckBadgeIcon,
@@ -19,7 +23,8 @@ import {
 
 export default function HomePage() {
   const { store } = useFrontendStore();
-  const { tx } = useLanguage();
+  const { tx, tr } = useLanguage();
+  const [overviewStats, setOverviewStats] = useState<PlatformOverviewStats | null>(null);
 
   const carouselItems = store.carouselImages
     .filter((image) => image.active)
@@ -32,11 +37,35 @@ export default function HomePage() {
       link: img.link,
     }));
 
-  const stats = {
-    ...MOCK_STATS,
-    totalJobs: Math.max(MOCK_STATS.totalJobs, store.jobs.length),
-    totalCandidates: Math.max(MOCK_STATS.totalCandidates, store.applications.length + 120),
-  };
+  useEffect(() => {
+    let mounted = true;
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/stats/overview');
+        if (mounted) setOverviewStats(response.data || null);
+      } catch {
+        if (mounted) setOverviewStats(null);
+      }
+    };
+    fetchStats();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const stats = overviewStats
+    ? {
+        totalJobs: overviewStats.jobs.active,
+        totalCandidates: overviewStats.users.candidates,
+        totalDonations: overviewStats.donations.totalRaised,
+        pcsDistributed: overviewStats.inventory.delivered,
+        targetPCs: Math.max(1000, overviewStats.inventory.delivered + overviewStats.inventory.inStock),
+      }
+    : {
+        ...MOCK_STATS,
+        totalJobs: Math.max(MOCK_STATS.totalJobs, store.jobs.length),
+        totalCandidates: Math.max(MOCK_STATS.totalCandidates, store.applications.length + 120),
+      };
 
   const progress = Math.min(100, Math.round((stats.pcsDistributed / stats.targetPCs) * 100));
 
@@ -116,7 +145,7 @@ export default function HomePage() {
                   <p className="text-sm text-slate-500">{tx('home.kpiDonors')}</p>
                   <UserGroupIcon className="h-5 w-5 text-emerald-700" />
                 </div>
-                <p className="mt-2 text-3xl font-black text-slate-900">{MOCK_DONORS.length * 24}</p>
+                <p className="mt-2 text-3xl font-black text-slate-900">{stats.totalCandidates}</p>
               </div>
 
               <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
@@ -174,7 +203,7 @@ export default function HomePage() {
                 <div className="rounded-xl bg-slate-50 p-4 border border-slate-200">
                   <HeartIcon className="h-5 w-5 text-rose-700 mb-2" />
                   <p className="text-xs text-slate-500">{tx('header.donate')}</p>
-                  <p className="text-2xl font-black text-slate-900">{stats.totalDonations.toLocaleString('fr-FR')}</p>
+                  <p className="text-2xl font-black text-slate-900">{formatFCFA(stats.totalDonations)}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4 border border-slate-200">
                   <BriefcaseIcon className="h-5 w-5 text-violet-700 mb-2" />
@@ -191,6 +220,11 @@ export default function HomePage() {
                   <Button variant="outline">{tx('home.ctaJobs')}</Button>
                 </Link>
               </div>
+              {overviewStats && (
+                <p className="mt-4 text-xs text-slate-500">
+                  {tr('Inventaire PC', 'PC inventory')}: {overviewStats.inventory.total} | {tr('En stock', 'In stock')}: {overviewStats.inventory.inStock}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -221,13 +255,13 @@ export default function HomePage() {
 
       <PartnersCarousel partners={MOCK_PARTNERS} />
 
-      <section className="py-16 bg-gradient-to-r from-primary-700 to-blue-600">
+      <section className="py-16 bg-gradient-to-r from-primary-800 via-primary-700 to-primary-600">
         <div className="container-custom text-center">
           <h2 className="text-3xl md:text-4xl font-black text-white">{tx('home.finalTitle')}</h2>
-          <p className="mt-3 text-lg text-blue-100 max-w-2xl mx-auto">{tx('home.finalText')}</p>
+          <p className="mt-3 text-lg text-primary-100 max-w-2xl mx-auto">{tx('home.finalText')}</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link href="/donation">
-              <Button size="lg" className="bg-white text-primary-700 hover:bg-slate-100">
+              <Button size="lg" className="bg-amber-300 text-slate-900 hover:bg-amber-200 border border-amber-200">
                 {tx('home.finalDonate')}
               </Button>
             </Link>
@@ -240,24 +274,24 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-12 bg-slate-950 overflow-hidden">
+      <section className="py-14 bg-gradient-to-r from-slate-900 via-primary-900 to-slate-900 overflow-hidden">
         <div className="container-custom">
           <h2 className="text-2xl md:text-3xl font-black text-white">{tx('home.reviewsTitle')}</h2>
-          <p className="text-slate-300 mt-2 mb-6">{tx('home.reviewsText')}</p>
+          <p className="text-primary-100 mt-2 mb-6">{tx('home.reviewsText')}</p>
         </div>
         <div className="relative">
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-slate-950 to-transparent z-10" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-slate-950 to-transparent z-10" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-slate-900 to-transparent z-10" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-slate-900 to-transparent z-10" />
           <div className="flex w-max gap-4 animate-marquee-x px-4">
             {[...beneficiaryReviews, ...beneficiaryReviews].map((review, index) => (
               <article
                 key={`${review.name}-${index}`}
-                className="w-[300px] md:w-[360px] shrink-0 rounded-2xl border border-slate-700 bg-slate-900/90 p-5"
+                className="w-[300px] md:w-[360px] shrink-0 rounded-2xl border border-amber-200/60 bg-amber-50 p-5 shadow-lg"
               >
-                <p className="text-slate-100 text-sm leading-relaxed">&quot;{review.quote}&quot;</p>
+                <p className="text-slate-700 text-sm leading-relaxed">&quot;{review.quote}&quot;</p>
                 <div className="mt-4">
-                  <p className="font-semibold text-white">{review.name}</p>
-                  <p className="text-xs text-slate-400">{review.role}</p>
+                  <p className="font-semibold text-slate-900">{review.name}</p>
+                  <p className="text-xs text-primary-700">{review.role}</p>
                 </div>
               </article>
             ))}

@@ -8,9 +8,16 @@ import { useFrontendStore } from '@/hooks/useFrontendStore';
 
 export const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const router = useRouter();
+  const isAdminArea = router.pathname.startsWith('/admin');
   const { language, setLanguage, tx } = useLanguage();
   const { store } = useFrontendStore();
+  const candidateSession = isHydrated ? store.candidateSession : null;
+
+  React.useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const navigation = [
     { name: tx('header.home'), href: '/' },
@@ -85,7 +92,7 @@ export const Header: React.FC = () => {
             ))}
           </div>
 
-          {/* Auth Buttons */}
+          {/* Language + Auth */}
           <div className="hidden md:flex items-center space-x-4">
             <div className="inline-flex rounded-lg border border-gray-200 p-1">
               <button
@@ -105,16 +112,22 @@ export const Header: React.FC = () => {
                 {tx('common.languageEn')}
               </button>
             </div>
-            <Link href={store.candidateSession ? '/candidate/profile' : '/candidate/login'}>
+            {!isAdminArea && (
+              <>
+            <Link href={candidateSession ? '/candidate/profile' : '/candidate/login'}>
               <Button variant="ghost" size="sm">
-                {store.candidateSession ? store.candidateSession.fullName : tx('common.login')}
+                {candidateSession ? tx('footer.profile') : tx('common.login')}
               </Button>
             </Link>
-            <Link href="/candidate/register">
-              <Button size="sm">
-                {tx('common.register')}
-              </Button>
-            </Link>
+            {!candidateSession && (
+              <Link href="/candidate/register">
+                <Button size="sm">
+                  {tx('common.register')}
+                </Button>
+              </Link>
+            )}
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -184,16 +197,22 @@ export const Header: React.FC = () => {
                   {tx('common.languageEn')}
                 </Button>
               </div>
-              <Link href="/candidate/login" className="block">
+              {!isAdminArea && (
+              <>
+              <Link href={candidateSession ? '/candidate/profile' : '/candidate/login'} className="block">
                 <Button variant="outline" fullWidth>
-                  {tx('common.login')}
+                  {candidateSession ? tx('footer.profile') : tx('common.login')}
                 </Button>
               </Link>
-              <Link href="/candidate/register" className="block">
-                <Button fullWidth>
-                  {tx('common.register')}
-                </Button>
-              </Link>
+              {!candidateSession && (
+                <Link href="/candidate/register" className="block">
+                  <Button fullWidth>
+                    {tx('common.register')}
+                  </Button>
+                </Link>
+              )}
+              </>
+              )}
             </div>
           </div>
         )}

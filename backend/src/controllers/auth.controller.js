@@ -7,8 +7,9 @@ const prisma = new PrismaClient()
 export const register = async (req, res) => {
   try {
     const { email, password } = req.body
+    const normalizedEmail = String(email || "").trim().toLowerCase()
         const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email: normalizedEmail }
     })
 
     if (existingUser) {
@@ -17,7 +18,7 @@ export const register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10)
             const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         passwordHash: hashedPassword
       }
     })
@@ -35,8 +36,9 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body
+    const normalizedEmail = String(email || "").trim().toLowerCase()
         const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email: normalizedEmail }
     })
 
     if (!user) {
@@ -55,6 +57,27 @@ export const login = async (req, res) => {
 
     res.json({ token })
 
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+export const me = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: {
+        id: true,
+        email: true,
+        role: true
+      }
+    })
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" })
+    }
+
+    res.json(user)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }

@@ -6,7 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 
 interface JobManagementProps {
   jobs: JobRecord[];
-  onCreateJob: (payload: { title: string; company: string; location: string; tags: string[] }) => void;
+  onCreateJob: (payload: { title: string; company: string; location: string; tags: string[]; description: string }) => void;
   onToggleStatus: (jobId: string) => void;
   onDeleteJob: (jobId: string) => void;
   compact?: boolean;
@@ -26,6 +26,7 @@ export const JobManagement: React.FC<JobManagementProps> = ({
     company: '',
     location: '',
     tags: '',
+    description: '',
   });
 
   const submitForm = (event: React.FormEvent) => {
@@ -34,12 +35,13 @@ export const JobManagement: React.FC<JobManagementProps> = ({
       title: form.title,
       company: form.company,
       location: form.location,
+      description: form.description,
       tags: form.tags
         .split(',')
         .map((item) => item.trim())
         .filter(Boolean),
     });
-    setForm({ title: '', company: '', location: '', tags: '' });
+    setForm({ title: '', company: '', location: '', tags: '', description: '' });
     setShowForm(false);
   };
 
@@ -77,6 +79,17 @@ export const JobManagement: React.FC<JobManagementProps> = ({
             value={form.tags}
             onChange={(e) => setForm((prev) => ({ ...prev, tags: e.target.value }))}
           />
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">{tr('Description de l offre', 'Job description')}</label>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+              rows={4}
+              className="input-field"
+              placeholder={tr('Decrivez le poste, les missions et le contexte.', 'Describe role, missions and context.')}
+              required
+            />
+          </div>
           <div className="md:col-span-2 flex justify-end">
             <Button type="submit" size="sm">
               {tr('Publier l offre', 'Publish job')}
@@ -85,15 +98,63 @@ export const JobManagement: React.FC<JobManagementProps> = ({
         </form>
       )}
 
-      <div className="rounded-xl border border-gray-100 overflow-hidden">
+      <div className="md:hidden space-y-3">
+        {jobs.length === 0 && (
+          <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
+            {tr('Aucune offre disponible.', 'No job available.')}
+          </div>
+        )}
+        {jobs.map((job) => (
+          <article key={job.id} className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-base font-bold text-gray-900">{job.title}</p>
+            <p className="text-sm text-gray-700">{job.company}</p>
+            <p className="text-xs text-gray-500 mt-1">{job.location}</p>
+            <p className="text-sm text-gray-700 mt-3">{job.description}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {job.tags.map((tag) => (
+                <span key={`${job.id}-${tag}`} className="px-2 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-semibold">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                  job.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-700'
+                }`}
+              >
+                {job.status === 'active' ? tr('Active', 'Active') : tr('Desactivee', 'Disabled')}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="px-3 py-1.5 rounded-md bg-primary-700 text-white text-xs font-semibold hover:bg-primary-800"
+                  onClick={() => onToggleStatus(job.id)}
+                >
+                  {job.status === 'active' ? tr('Desactiver', 'Disable') : tr('Activer', 'Activate')}
+                </button>
+                <button
+                  type="button"
+                  className="px-3 py-1.5 rounded-md bg-rose-600 text-white text-xs font-semibold"
+                  onClick={() => onDeleteJob(job.id)}
+                >
+                  {tr('Supprimer', 'Delete')}
+                </button>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="hidden md:block rounded-xl border border-primary-100 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-primary-50">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">{tr('Titre', 'Title')}</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">{tr('Entreprise', 'Company')}</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">{tr('Localisation', 'Location')}</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">{tr('Statut', 'Status')}</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">{tr('Actions', 'Actions')}</th>
+              <th className="px-4 py-3 text-left font-semibold text-primary-900">{tr('Titre', 'Title')}</th>
+              <th className="px-4 py-3 text-left font-semibold text-primary-900">{tr('Entreprise', 'Company')}</th>
+              <th className="px-4 py-3 text-left font-semibold text-primary-900">{tr('Localisation', 'Location')}</th>
+              <th className="px-4 py-3 text-left font-semibold text-primary-900">{tr('Statut', 'Status')}</th>
+              <th className="px-4 py-3 text-left font-semibold text-primary-900">{tr('Actions', 'Actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
@@ -121,12 +182,14 @@ export const JobManagement: React.FC<JobManagementProps> = ({
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-2">
                     <button
-                      className="px-3 py-1.5 rounded-md bg-slate-800 text-white text-xs font-semibold"
+                      type="button"
+                      className="px-3 py-1.5 rounded-md bg-primary-700 text-white text-xs font-semibold hover:bg-primary-800"
                       onClick={() => onToggleStatus(job.id)}
                     >
                       {job.status === 'active' ? tr('Desactiver', 'Disable') : tr('Activer', 'Activate')}
                     </button>
                     <button
+                      type="button"
                       className="px-3 py-1.5 rounded-md bg-rose-600 text-white text-xs font-semibold"
                       onClick={() => onDeleteJob(job.id)}
                     >

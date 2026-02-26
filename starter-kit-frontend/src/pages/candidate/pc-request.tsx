@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { Button } from '@/components/ui/Button';
 import { PC_CATEGORIES } from '@/utils/constants';
 import { PC_Category } from '@/utils/types';
 import { useFrontendStore } from '@/hooks/useFrontendStore';
 import { useLanguage } from '@/context/LanguageContext';
+import { api } from '@/lib/api';
+import { mapBackendPcRequestToRecord } from '@/lib/mappers';
 
 export default function PCRequestPage() {
   const router = useRouter();
   const { store, patchStore } = useFrontendStore();
   const { tr } = useLanguage();
+  const [isClientReady, setIsClientReady] = useState(false);
   const descriptions: Record<string, { fr: string; en: string }> = {
     basic: {
       fr: 'Ideal pour les taches essentielles: navigation, bureautique et recherche.',
@@ -31,34 +34,74 @@ export default function PCRequestPage() {
     professionalGoal: '',
     motivation: '',
   });
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!store.candidateSession) {
-    if (typeof window !== 'undefined') router.replace('/candidate/login');
-    return null;
+  useEffect(() => {
+    setIsClientReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClientReady && !store.candidateSession) {
+      router.replace('/candidate/login');
+    }
+  }, [isClientReady, router, store.candidateSession]);
+
+  if (!isClientReady || !store.candidateSession) {
+    return <div className="min-h-screen bg-gray-50 py-12" />;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    patchStore((prev) => ({
-      ...prev,
-      pcRequests: [
-        {
-          id: `pc-${Date.now()}`,
-          candidateId: store.candidateSession!.id,
-          candidateName: store.candidateSession!.fullName,
-          candidateEmail: store.candidateSession!.email,
-          candidatePhone: store.candidateSession!.phone,
-          category: formData.category as PC_Category,
-          reason: formData.reason,
-          professionalGoal: formData.professionalGoal,
-          motivation: formData.motivation,
-          createdAt: new Date().toISOString(),
-          decision: 'pending',
+    setError('');
+    const normalizedReason = formData.reason.trim();
+    const normalizedGoal = formData.professionalGoal.trim();
+    const normalizedMotivation = formData.motivation.trim();
+    const futureProjectText = `${normalizedGoal}\n\n${normalizedMotivation}`.trim();
+
+    if (futureProjectText.length < 20) {
+      setError(tr('Le projet futur doit contenir au moins 20 caracteres.', 'Future project must be at least 20 characters.'));
+      return;
+    }
+
+    const pcTypeByCategory: Record<PC_Category, 'BASIC' | 'STANDARD' | 'PREMIUM'> = {
+      basic: 'BASIC',
+      standard: 'STANDARD',
+      premium: 'PREMIUM',
+    };
+
+    try {
+      setIsSubmitting(true);
+      const response = await api.post('/pc-requests', {
+        pcType: pcTypeByCategory[formData.category as PC_Category],
+        justificationText: normalizedReason,
+        futureProject: futureProjectText,
+      });
+
+      const mapped = mapBackendPcRequestToRecord({
+        ...response.data,
+        user: {
+          id: Number(store.candidateSession!.id) || 0,
+          email: store.candidateSession!.email,
+          profile: {
+            firstName: store.candidateSession!.fullName.split(' ')[0] || '',
+            lastName: store.candidateSession!.fullName.split(' ').slice(1).join(' '),
+          },
         },
-        ...prev.pcRequests,
-      ],
-    }));
-    router.push('/candidate/profile');
+      });
+
+      patchStore((prev) => ({
+        ...prev,
+        pcRequests: [mapped, ...prev.pcRequests],
+      }));
+
+      router.push('/candidate/profile');
+    } catch (err: any) {
+      const message = err?.response?.data?.message || tr('Soumission impossible.', 'Could not submit request.');
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -120,7 +163,12 @@ export default function PCRequestPage() {
               <div>
                 <h2 className="text-xl font-semibold mb-4">{tr('Projet professionnel', 'Career project')}</h2>
                 <div className="space-y-5">
+                  <label htmlFor="pc-reason" className="block text-sm font-medium text-gray-700">
+                    {tr('Pourquoi avez-vous besoin d un PC ?', 'Why do you need a laptop?')}
+                  </label>
                   <textarea
+                    id="pc-reason"
+                    name="reason"
                     value={formData.reason}
                     onChange={(e) => setFormData((prev) => ({ ...prev, reason: e.target.value }))}
                     rows={4}
@@ -128,15 +176,26 @@ export default function PCRequestPage() {
                     placeholder={tr('Pourquoi avez-vous besoin d un PC ?', 'Why do you need a laptop?')}
                     required
                   />
+                  <label htmlFor="pc-professional-goal" className="block text-sm font-medium text-gray-700">
+                    {tr('Quel stage cherchez-vous ?', 'Which internship are you looking for?')}
+                  </label>
                   <textarea
+                    id="pc-professional-goal"
+                    name="professionalGoal"
                     value={formData.professionalGoal}
                     onChange={(e) => setFormData((prev) => ({ ...prev, professionalGoal: e.target.value }))}
                     rows={4}
                     className="input-field"
                     placeholder={tr('Quel stage cherchez-vous ?', 'Which internship are you looking for?')}
+                    minLength={20}
                     required
                   />
+                  <label htmlFor="pc-motivation" className="block text-sm font-medium text-gray-700">
+                    {tr('En quoi ce soutien va changer votre parcours ?', 'How will this support change your path?')}
+                  </label>
                   <textarea
+                    id="pc-motivation"
+                    name="motivation"
                     value={formData.motivation}
                     onChange={(e) => setFormData((prev) => ({ ...prev, motivation: e.target.value }))}
                     rows={4}
@@ -175,8 +234,11 @@ export default function PCRequestPage() {
                   <Button type="button" variant="outline" onClick={() => setStep(2)}>
                     {tr('Retour', 'Back')}
                   </Button>
-                  <Button type="submit">{tr('Soumettre ma demande', 'Submit my request')}</Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? tr('Soumission...', 'Submitting...') : tr('Soumettre ma demande', 'Submit my request')}
+                  </Button>
                 </div>
+                {error && <p className="text-sm text-red-600 mt-4">{error}</p>}
               </div>
             )}
           </form>

@@ -6,7 +6,7 @@ import prisma from "../prisma/client.js";
 
 export const createPcRequest = async (req, res) => {
   try {
-    const userId = req.user.id; // supposé via middleware auth
+    const userId = req.user.userId;
     const { justificationText, pcType, futureProject } = req.body;
 
     if (!["BASIC", "STANDARD", "PREMIUM"].includes(pcType)) {
@@ -51,7 +51,7 @@ export const createPcRequest = async (req, res) => {
 
 export const getMyPcRequest = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     const request = await prisma.pCRequest.findUnique({
       where: { userId },
@@ -63,6 +63,7 @@ export const getMyPcRequest = async (req, res) => {
     res.json(request);
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -142,5 +143,44 @@ export const updatePcRequestStatus = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getPcRequestById = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ message: "Invalid request id" });
+    }
+
+    const request = await prisma.pCRequest.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+                phone: true,
+              },
+            },
+          },
+        },
+        assignedPc: true,
+      },
+    });
+
+    if (!request) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    return res.json(request);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error" });
   }
 };

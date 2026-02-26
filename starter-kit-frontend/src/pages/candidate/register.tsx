@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useFrontendStore } from '@/hooks/useFrontendStore';
 import { useLanguage } from '@/context/LanguageContext';
+import { api } from '@/lib/api';
+import { buildCandidateSession, setAuthToken } from '@/lib/auth';
 
 export default function CandidateRegister() {
   const router = useRouter();
@@ -18,25 +20,49 @@ export default function CandidateRegister() {
     phone: '',
   });
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
     if (formData.password !== formData.confirmPassword) {
       setError(tr('Les mots de passe ne correspondent pas.', 'Passwords do not match.'));
       return;
     }
-    patchStore((prev) => ({
-      ...prev,
-      candidateSession: {
-        id: `cand-${Date.now()}`,
-        fullName: formData.fullName,
+
+    try {
+      setIsSubmitting(true);
+      const response = await api.post('/auth/register', {
         email: formData.email,
-        phone: formData.phone,
-        role: 'candidate',
-      },
-    }));
-    router.push('/candidate/profile');
+        password: formData.password,
+      });
+      const token = response.data?.token;
+      if (!token) throw new Error('Token manquant');
+
+      setAuthToken(token, 'candidate');
+      const session = buildCandidateSession(formData.email, token);
+      session.fullName = formData.fullName || session.fullName;
+      session.phone = formData.phone || '';
+
+      patchStore((prev) => ({
+        ...prev,
+        candidateSession: session,
+      }));
+
+      router.push('/candidate/profile');
+    } catch (err: any) {
+      const message = err?.response?.data?.message || tr('Inscription impossible.', 'Could not register.');
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const submitLabel = isSubmitting
+    ? tr('Creation en cours...', 'Creating account...')
+    : tr('Creer mon compte', 'Create my account');
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -81,8 +107,8 @@ export default function CandidateRegister() {
               required
             />
             {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" fullWidth>
-              {tr('Creer mon compte', 'Create my account')}
+            <Button type="submit" fullWidth disabled={isSubmitting}>
+              {submitLabel}
             </Button>
           </form>
 

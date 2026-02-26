@@ -1,10 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useFrontendStore } from '@/hooks/useFrontendStore';
 import { MagnifyingGlassIcon, MapPinIcon, BriefcaseIcon } from '@heroicons/react/24/outline';
 import { JOB_TAGS, LOCATIONS_BENIN, CONTRACT_TYPES } from '@/utils/constants';
 import { useLanguage } from '@/context/LanguageContext';
+import { JobRecord } from '@/utils/frontendStore';
+import { api } from '@/lib/api';
+import { mapBackendJobToJobRecord } from '@/lib/mappers';
 
 interface Filters {
   domain: string;
@@ -15,19 +18,50 @@ interface Filters {
 export default function JobsPage() {
   const { store, patchStore } = useFrontendStore();
   const { tr } = useLanguage();
+  const candidateSession = store.candidateSession;
+  const [backendJobs, setBackendJobs] = useState<JobRecord[] | null>(null);
+  const [jobsError, setJobsError] = useState('');
   const [filters, setFilters] = useState<Filters>({ domain: '', location: '', contractType: '' });
   const [searchTerm, setSearchTerm] = useState('');
   const [activeApplyJobId, setActiveApplyJobId] = useState<string | null>(null);
+  const [applyError, setApplyError] = useState('');
+  const [isSubmittingApplication, setIsSubmittingApplication] = useState(false);
   const [applyForm, setApplyForm] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
+    fullName: candidateSession?.fullName || '',
+    email: candidateSession?.email || '',
+    phone: candidateSession?.phone || '',
     cvUrl: '',
     coverLetter: '',
   });
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchJobs = async () => {
+      try {
+        setJobsError('');
+        const response = await api.get('/jobs');
+        if (!isMounted) return;
+        const mapped = Array.isArray(response.data) ? response.data.map(mapBackendJobToJobRecord) : [];
+        setBackendJobs(mapped);
+      } catch {
+        if (!isMounted) return;
+        setJobsError(tr('Impossible de charger les offres depuis le serveur.', 'Could not load jobs from server.'));
+        setBackendJobs(null);
+      }
+    };
+
+    fetchJobs();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [tr]);
+
   const jobs = useMemo(() => {
-    return store.jobs.filter((job) => {
+    const sourceJobs = backendJobs || [];
+
+    return sourceJobs.filter((job) => {
       if (job.status !== 'active') return false;
       if (filters.domain && !job.tags.includes(filters.domain)) return false;
       if (filters.location && job.location !== filters.location) return false;
@@ -38,33 +72,57 @@ export default function JobsPage() {
       }
       return true;
     });
-  }, [store.jobs, filters, searchTerm]);
+  }, [backendJobs, filters, searchTerm]);
 
-  const submitApplication = (event: React.FormEvent) => {
+  const submitApplication = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!activeApplyJobId) return;
+    setApplyError('');
 
-    patchStore((prev) => ({
-      ...prev,
-      applications: [
-        {
-          id: `app-${Date.now()}`,
-          jobId: activeApplyJobId,
-          userId: `guest-${Date.now()}`,
-          fullName: applyForm.fullName,
-          email: applyForm.email,
-          phone: applyForm.phone,
-          cvUrl: applyForm.cvUrl || '/cv/non-fourni.pdf',
-          coverLetter: applyForm.coverLetter,
-          status: 'pending',
-          appliedAt: new Date().toISOString(),
-        },
-        ...prev.applications,
-      ],
-    }));
+    try {
+      setIsSubmittingApplication(true);
+      const response = await api.post(`/jobs/${activeApplyJobId}/apply`, {
+        fullName: applyForm.fullName || candidateSession?.fullName || tr('Candidat', 'Candidate'),
+        email: (applyForm.email || candidateSession?.email || '').trim().toLowerCase(),
+        phone: applyForm.phone || candidateSession?.phone || '',
+        message: applyForm.coverLetter,
+      });
 
-    setApplyForm({ fullName: '', email: '', phone: '', cvUrl: '', coverLetter: '' });
-    setActiveApplyJobId(null);
+      const created = response?.data?.application;
+      if (created) {
+        patchStore((prev) => ({
+          ...prev,
+          applications: [
+            {
+              id: String(created.id),
+              jobId: String(created.jobId),
+              userId: candidateSession?.id || `guest-${Date.now()}`,
+              fullName: created.fullName,
+              email: created.email,
+              phone: created.phone || '',
+              cvUrl: applyForm.cvUrl || '/cv/non-fourni.pdf',
+              coverLetter: created.message || '',
+              status: String(created.status || 'PENDING').toLowerCase() as 'pending' | 'accepted' | 'rejected' | 'reviewed',
+              appliedAt: created.createdAt || new Date().toISOString(),
+            },
+            ...prev.applications,
+          ],
+        }));
+      }
+
+      setApplyForm({
+        fullName: candidateSession?.fullName || '',
+        email: candidateSession?.email || '',
+        phone: candidateSession?.phone || '',
+        cvUrl: '',
+        coverLetter: '',
+      });
+      setActiveApplyJobId(null);
+    } catch (err: any) {
+      setApplyError(err?.response?.data?.message || tr('Candidature impossible.', 'Could not submit application.'));
+    } finally {
+      setIsSubmittingApplication(false);
+    }
   };
 
   return (
@@ -148,6 +206,7 @@ export default function JobsPage() {
           </div>
 
           <div className="lg:col-span-3 space-y-4">
+            {jobsError && <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">{jobsError}</p>}
             <p className="text-gray-600">
               <span className="font-semibold">{jobs.length}</span> {tr('offre(s) active(s)', 'active job(s)')}
             </p>
@@ -223,10 +282,11 @@ export default function JobsPage() {
                       />
                     </div>
                     <div className="flex justify-end">
-                      <Button type="submit" size="sm">
-                        {tr('Envoyer ma candidature', 'Submit application')}
+                      <Button type="submit" size="sm" disabled={isSubmittingApplication}>
+                        {isSubmittingApplication ? tr('Envoi...', 'Submitting...') : tr('Envoyer ma candidature', 'Submit application')}
                       </Button>
                     </div>
+                    {applyError && <p className="text-sm text-red-600">{applyError}</p>}
                   </form>
                 )}
               </div>

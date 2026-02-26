@@ -120,3 +120,38 @@ export interface Stats {
   pcsDistributed: number;
   targetPCs: number;
 }
+
+export interface PlatformOverviewStats {
+  donations: {
+    totalRaised: number;
+    currency: string;
+  };
+  users: {
+    total: number;
+    candidates: number;
+  };
+  jobs: {
+    total: number;
+    active: number;
+  };
+  applications: {
+    total: number;
+    pending: number;
+    accepted: number;
+    rejected: number;
+  };
+  pcRequests: {
+    total: number;
+    pending: number;
+    accepted: number;
+    rejected: number;
+  };
+  inventory: {
+    total: number;
+    inStock: number;
+    delivered: number;
+  };
+  impact: {
+    totalPcFinanced: number;
+  };
+}

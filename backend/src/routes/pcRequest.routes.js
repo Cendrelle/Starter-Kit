@@ -3,6 +3,7 @@ import {
   createPcRequest,
   getMyPcRequest,
   getAllPcRequests,
+  getPcRequestById,
   updatePcRequestStatus
 } from "../controllers/pcRequest.controller.js";
 
@@ -17,6 +18,7 @@ router.get("/me", authenticate, getMyPcRequest);
 
 // 🛠 ADMIN
 router.get("/", authenticate, adminMiddleware, getAllPcRequests);
+router.get("/:id", authenticate, adminMiddleware, getPcRequestById);
 router.patch("/:id/status", authenticate, adminMiddleware, updatePcRequestStatus);
 
 export default router;

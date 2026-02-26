@@ -1,15 +1,18 @@
 import express from "express"
 import dotenv from "dotenv"
+import cors from "cors"
 import authRoutes from "./routes/auth.routes.js"
 import jobRoutes from "./routes/job.routes.js"
 import profileRoutes from "./routes/profile.routes.js"
 import donationRoutes from "./routes/donation.routes.js"
 import pcRequestRoutes from "./routes/pcRequest.routes.js"
 import jobApplicationRoutes from "./routes/jobApplication.routes.js"
+import statsRoutes from "./routes/stats.routes.js"
 
 dotenv.config()
 
 const app = express()
+app.use(cors())
 app.use(express.json())
 
 app.use("/api/auth", authRoutes)
@@ -18,6 +21,7 @@ app.use("/api/profile", profileRoutes)
 app.use("/api/donations", donationRoutes)
 app.use("/api/pc-requests", pcRequestRoutes)
 app.use("/api/job-applications", jobApplicationRoutes)
+app.use("/api/stats", statsRoutes)
 
 app.listen(3030, () => {
   console.log("Server running on port 3030")

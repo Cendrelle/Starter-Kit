@@ -1,15 +1,35 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { formatFCFA } from '@/utils/currency';
-import { MOCK_DONORS } from '@/utils/constants';
-import { UserCircleIcon } from '@heroicons/react/24/outline';
 import { useLanguage } from '@/context/LanguageContext';
+import { api } from '@/lib/api';
 
 export default function CagnotteCommunePage() {
   const { tr } = useLanguage();
-  const totalCollecte = 156780;
-  const objectif = 500000;
+  const [stats, setStats] = useState({
+    totalRaised: 0,
+    totalPcFinanced: 0,
+    yearlyTarget: 1000,
+    progressPercentage: 0,
+  });
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/donations/stats');
+        setStats(response.data);
+      } catch {
+        setError(tr('Impossible de charger les statistiques.', 'Could not load statistics.'));
+      }
+    };
+
+    fetchStats();
+  }, [tr]);
+
+  const totalCollecte = stats.totalRaised;
+  const objectif = stats.yearlyTarget * 150000;
   const progression = (totalCollecte / objectif) * 100;
 
   return (
@@ -21,6 +41,7 @@ export default function CagnotteCommunePage() {
         </div>
 
         <div className="max-w-4xl mx-auto mb-12">
+          {error && <p className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold text-gray-900">{tr('Objectif 2026', '2026 Target')}</h2>
@@ -39,12 +60,12 @@ export default function CagnotteCommunePage() {
                 <p className="text-gray-600">{tr('Collectes', 'Raised')}</p>
               </div>
               <div>
-                <p className="text-3xl font-bold text-primary-600">{Math.floor(totalCollecte / 250000)}</p>
+                <p className="text-3xl font-bold text-primary-600">{Math.floor(stats.totalPcFinanced)}</p>
                 <p className="text-gray-600">{tr('PC finances', 'Funded PCs')}</p>
               </div>
               <div>
-                <p className="text-3xl font-bold text-primary-600">{MOCK_DONORS.length}</p>
-                <p className="text-gray-600">{tr('Donateurs', 'Donors')}</p>
+                <p className="text-3xl font-bold text-primary-600">{stats.progressPercentage}%</p>
+                <p className="text-gray-600">{tr('Progression', 'Progress')}</p>
               </div>
             </div>
 
@@ -56,25 +77,8 @@ export default function CagnotteCommunePage() {
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">{tr('Derniers donateurs', 'Latest donors')}</h2>
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="space-y-4">
-              {MOCK_DONORS.map((donor) => (
-                <div key={donor.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <UserCircleIcon className="h-10 w-10 text-gray-400" />
-                    <div>
-                      <p className="font-semibold text-gray-900">{donor.isAnonymous ? tr('Donateur anonyme', 'Anonymous donor') : donor.name}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-primary-600">{formatFCFA(donor.amount)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="max-w-4xl mx-auto rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
+          {tr('La liste des derniers donateurs sera connectee quand l endpoint dedie sera disponible.', 'The latest donors list will be connected once the dedicated endpoint is available.')}
         </div>
       </div>
     </div>

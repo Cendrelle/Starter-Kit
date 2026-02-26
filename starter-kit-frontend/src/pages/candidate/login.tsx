@@ -5,27 +5,47 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useFrontendStore } from '@/hooks/useFrontendStore';
 import { useLanguage } from '@/context/LanguageContext';
+import { api } from '@/lib/api';
+import { buildCandidateSession, setAuthToken } from '@/lib/auth';
 
 export default function CandidateLogin() {
   const router = useRouter();
   const { patchStore } = useFrontendStore();
   const { tr } = useLanguage();
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    patchStore((prev) => ({
-      ...prev,
-      candidateSession: {
-        id: `cand-${Date.now()}`,
-        fullName: formData.email.split('@')[0] || tr('Candidat', 'Candidate'),
+    setError('');
+
+    try {
+      setIsSubmitting(true);
+      const response = await api.post('/auth/login', {
         email: formData.email,
-        phone: '',
-        role: 'candidate',
-      },
-    }));
-    router.push('/candidate/profile');
+        password: formData.password,
+      });
+      const token = response.data?.token;
+      if (!token) throw new Error('Token manquant');
+
+      setAuthToken(token, 'candidate');
+      const session = buildCandidateSession(formData.email, token);
+
+      patchStore((prev) => ({
+        ...prev,
+        candidateSession: session,
+      }));
+      router.push('/candidate/profile');
+    } catch (err: any) {
+      const message = err?.response?.data?.message || tr('Connexion impossible.', 'Could not login.');
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const submitLabel = isSubmitting ? tr('Connexion...', 'Logging in...') : tr('Se connecter', 'Login');
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -51,8 +71,9 @@ export default function CandidateLogin() {
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
             />
-            <Button type="submit" fullWidth>
-              {tr('Se connecter', 'Login')}
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <Button type="submit" fullWidth disabled={isSubmitting}>
+              {submitLabel}
             </Button>
           </form>
 
