@@ -1,14 +1,43 @@
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { formatFCFA } from '@/utils/currency';
 import { MOCK_STATS } from '@/utils/constants';
 import { useLanguage } from '@/context/LanguageContext';
+import { PlatformOverviewStats } from '@/utils/types';
+import { api } from '@/lib/api';
 import { BanknotesIcon, BriefcaseIcon, ComputerDesktopIcon, UserGroupIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 
 export default function ImpactPage() {
-  const stats = MOCK_STATS;
   const { tx } = useLanguage();
+  const [overviewStats, setOverviewStats] = useState<PlatformOverviewStats | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/stats/overview');
+        if (mounted) setOverviewStats(response.data || null);
+      } catch {
+        if (mounted) setOverviewStats(null);
+      }
+    };
+    fetchStats();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const stats = overviewStats
+    ? {
+        totalJobs: overviewStats.jobs.active,
+        totalCandidates: overviewStats.users.candidates,
+        totalDonations: overviewStats.donations.totalRaised,
+        pcsDistributed: overviewStats.inventory.delivered,
+        targetPCs: Math.max(1000, overviewStats.inventory.delivered + overviewStats.inventory.inStock),
+      }
+    : MOCK_STATS;
 
   const timeline = [
     tx('impact.timeline1'),
@@ -29,7 +58,7 @@ export default function ImpactPage() {
       name: 'Marie K.',
       role: 'PC Standard',
       city: 'Cotonou',
-      image: '/images/stories/marie.jpg',
+      image: '/images/stories/Gemini_Generated_Image_3bcd323bcd323bcd.png',
       text:
         'Grace au materiel recu et aux offres publiees, elle a valide son stage et travaille sur des projets clients.',
     },
@@ -38,7 +67,7 @@ export default function ImpactPage() {
       name: 'Abdoulaye S.',
       role: 'PC Premium',
       city: 'Parakou',
-      image: '/images/stories/abdoulaye.jpg',
+      image: '/images/stories/Gemini_Generated_Image_dv8oqydv8oqydv8o.png',
       text: 'Il a construit un portfolio data et rejoint une equipe analytique en stage de pre-embauche.',
     },
     {
@@ -46,7 +75,7 @@ export default function ImpactPage() {
       name: 'Fatima B.',
       role: 'PC Basic',
       city: 'Porto-Novo',
-      image: '/images/stories/fatima.jpg',
+      image: '/images/stories/Gemini_Generated_Image_vygk9svygk9svygk.png',
       text: 'Elle a lance son activite design et facture deja ses premieres missions freelance.',
     },
   ];

@@ -1,0 +1,9 @@
+<svg width="640" height="420" viewBox="0 0 640 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="420" fill="#F2F2F2" />
+  <rect x="170" y="70" width="300" height="170" rx="16" stroke="#050505" stroke-width="10" />
+  <path d="M165 260L130 310C126 316 130 324 138 324H503C511 324 515 316 511 310L476 260" stroke="#050505" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="280" y="285" width="80" height="16" rx="8" stroke="#050505" stroke-width="6" />
+  <text x="250" y="200" font-size="140" fill="#3B5FC4" font-family="Times New Roman, serif" font-weight="700">S</text>
+  <text x="292" y="200" font-size="140" fill="#3B5FC4" font-family="Times New Roman, serif" font-weight="700">K</text>
+  <text x="205" y="165" font-size="44" fill="#101010" font-family="Times New Roman, serif" letter-spacing="3">starter kit</text>
+</svg>

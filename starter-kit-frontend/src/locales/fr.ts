@@ -49,7 +49,7 @@ export const fr = {
     badge: 'Plateforme d insertion numerique',
     heroTitle1: 'Un ordinateur',
     heroTitle2: 'Un stage',
-    heroTitle3: 'Un avenir lance',
+    heroTitle3: 'Un avenir lancé',
     heroText:
       'StarterKit connecte les donateurs, les jeunes diplomes et les entreprises pour accelerer l insertion professionnelle.',
     ctaDonate: 'Faire un don',

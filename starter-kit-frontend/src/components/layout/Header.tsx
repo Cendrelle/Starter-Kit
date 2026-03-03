@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { Bars3Icon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { Button } from '../ui/Button';
@@ -43,13 +44,15 @@ export const Header: React.FC = () => {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center transform group-hover:scale-110 transition-transform">
-              <span className="text-white font-bold text-xl">SK</span>
-            </div>
-            <span className="font-bold text-xl text-gray-900">
-              Starter<span className="text-primary-600">Kit</span>
-            </span>
+          <Link href="/" className="group">
+            <Image
+              src="/images/starterkit-logo.svg"
+              alt="StarterKit"
+              width={180}
+              height={118}
+              className="h-12 w-auto rounded-md bg-gray-100 p-1 transition-transform group-hover:scale-105 sm:h-14"
+              priority
+            />
           </Link>
 
           {/* Desktop Navigation */}
