@@ -9,6 +9,8 @@ import pcRequestRoutes from "./routes/pcRequest.routes.js"
 import jobApplicationRoutes from "./routes/jobApplication.routes.js"
 import statsRoutes from "./routes/stats.routes.js"
 import marketplaceRoutes from "./routes/marketplace.routes.js"
+import swaggerUi from "swagger-ui-express"
+import swaggerSpec from "./config/swagger.js"
 
 dotenv.config()
 
@@ -24,6 +26,7 @@ app.use("/api/pc-requests", pcRequestRoutes)
 app.use("/api/job-applications", jobApplicationRoutes)
 app.use("/api/stats", statsRoutes)
 app.use("/api/marketplace", marketplaceRoutes)
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 app.listen(3030, () => {
   console.log("Server running on port 3030")

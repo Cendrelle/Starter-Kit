@@ -4,6 +4,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
+import { getAuthToken } from '@/lib/auth';
 import { mapBackendMarketplaceItem } from '@/lib/mappers';
 import { MarketplaceCategory, MarketplaceItem } from '@/utils/types';
 
@@ -134,10 +135,11 @@ export default function MarketplacePage() {
   const [selectedCategory, setSelectedCategory] = useState<MarketplaceCategory | 'all'>('all');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [buyerEmail, setBuyerEmail] = useState('');
   const [purchaseStatus, setPurchaseStatus] = useState('');
   const [purchaseError, setPurchaseError] = useState('');
   const [isPurchasing, setIsPurchasing] = useState<string | null>(null);
+  const [purchaseNotice, setPurchaseNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [buyFormByItem, setBuyFormByItem] = useState<Record<string, string>>({});
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishStatus, setPublishStatus] = useState('');
   const [publishError, setPublishError] = useState('');
@@ -151,6 +153,7 @@ export default function MarketplacePage() {
     fileUrl: '',
   });
   const [publishAuthHint, setPublishAuthHint] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const categoryOptions = useMemo<CategoryOption[]>(() => [
     { id: 'cv_template', label: tr('CV templates', 'CV templates'), short: 'CV' },
@@ -185,6 +188,7 @@ export default function MarketplacePage() {
     };
 
     fetchItems();
+    setIsLoggedIn(Boolean(getAuthToken('candidate') || getAuthToken('admin')));
 
     return () => {
       isMounted = false;
@@ -275,16 +279,30 @@ export default function MarketplacePage() {
   const handlePurchase = async (itemId: string) => {
     setPurchaseError('');
     setPurchaseStatus('');
+    setPurchaseNotice(null);
+
+    const hasToken = Boolean(getAuthToken('candidate') || getAuthToken('admin'));
+    const buyerEmail = (buyFormByItem[itemId] || '').trim();
+    if (!hasToken && !buyerEmail) {
+      const message = tr('Veuillez saisir un email acheteur.', 'Please provide a buyer email.');
+      setPurchaseError(message);
+      setPurchaseNotice({ type: 'error', message });
+      return;
+    }
 
     try {
       setIsPurchasing(itemId);
       await api.post(`/marketplace/items/${itemId}/purchase`, {
-        buyerEmail: buyerEmail.trim().toLowerCase(),
+        buyerEmail: buyerEmail.toLowerCase(),
       });
-      setPurchaseStatus(tr('Demande d achat envoyee.', 'Purchase request sent.'));
-      setBuyerEmail('');
+      const message = tr('Demande d achat envoyee.', 'Purchase request sent.');
+      setPurchaseStatus(message);
+      setPurchaseNotice({ type: 'success', message });
+      setBuyFormByItem((prev) => ({ ...prev, [itemId]: '' }));
     } catch (error: any) {
-      setPurchaseError(error?.response?.data?.message || tr('Achat impossible.', 'Could not complete purchase.'));
+      const message = error?.response?.data?.message || tr('Achat impossible.', 'Could not complete purchase.');
+      setPurchaseError(message);
+      setPurchaseNotice({ type: 'error', message });
     } finally {
       setIsPurchasing(null);
     }
@@ -466,17 +484,8 @@ export default function MarketplacePage() {
             <div className="rounded-2xl border border-slate-200 bg-slate-900 p-5 text-white shadow-sm">
               <h3 className="text-lg font-semibold">{tr('Acheter rapidement', 'Quick purchase')}</h3>
               <p className="mt-2 text-sm text-white/80">
-                {tr('Indiquez votre email pour recevoir le lien apres achat.', 'Provide your email to receive the link after purchase.')}
+                {tr('Selectionnez une ressource et remplissez l email sous la carte.', 'Select a resource and fill in the email under the card.')}
               </p>
-              <div className="mt-4">
-                <Input
-                  label={tr('Email acheteur', 'Buyer email')}
-                  type="email"
-                  value={buyerEmail}
-                  onChange={(event) => setBuyerEmail(event.target.value)}
-                  className="bg-white"
-                />
-              </div>
               <div className="mt-4 space-y-2 text-sm text-white/70">
                 <p>{tr('Paiement securise, livraison instantanee.', 'Secure payment, instant delivery.')}</p>
                 <p>{tr('Les vendeurs sont verifiees.', 'Sellers are verified.')}</p>
@@ -506,6 +515,17 @@ export default function MarketplacePage() {
             {itemsError}
           </div>
         )}
+        {purchaseNotice && (
+          <div
+            className={`mt-6 rounded-lg border px-4 py-3 text-sm ${
+              purchaseNotice.type === 'success'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                : 'border-rose-200 bg-rose-50 text-rose-700'
+            }`}
+          >
+            {purchaseNotice.message}
+          </div>
+        )}
 
         <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {filteredItems.map((item) => {
@@ -521,6 +541,22 @@ export default function MarketplacePage() {
                 <div className="p-5">
                   <h3 className="text-lg font-bold text-slate-900">{item.title}</h3>
                   <p className="mt-2 text-sm text-slate-600 line-clamp-3">{item.description}</p>
+                  {!isLoggedIn && (
+                    <div className="mt-4">
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">
+                        {tr('Email acheteur (si non connecte)', 'Buyer email (if not logged in)')}
+                      </label>
+                      <input
+                        type="email"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        placeholder="email@exemple.com"
+                        value={buyFormByItem[item.id] || ''}
+                        onChange={(event) =>
+                          setBuyFormByItem((prev) => ({ ...prev, [item.id]: event.target.value }))
+                        }
+                      />
+                    </div>
+                  )}
                   <div className="mt-4 flex items-center justify-between">
                     <p className="text-lg font-semibold text-slate-900">{formatPrice(item.price, item.currency)}</p>
                     <Button

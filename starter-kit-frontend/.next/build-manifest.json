@@ -27,11 +27,6 @@
       "static/chunks/main.js",
       "static/chunks/pages/candidate/login.js"
     ],
-    "/candidate/profile": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/candidate/profile.js"
-    ],
     "/marketplace": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
