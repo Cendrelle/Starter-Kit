@@ -25,6 +25,7 @@ export const en = {
     home: 'Home',
     donate: 'Donate',
     jobs: 'Internships',
+    marketplace: 'Student marketplace',
     requestPc: 'Request a PC',
     impact: 'Impact',
     commonFund: 'Shared Fund',

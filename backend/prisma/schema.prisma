@@ -23,6 +23,8 @@ model User {
   profile        Profile?
   pcRequests     PCRequest[]
   inventoryItems Inventory[]
+  marketplaceItems  MarketplaceItem[]
+  marketplaceOrders MarketplaceOrder[]
 
   @@map("users")
 }
@@ -187,4 +189,60 @@ enum PcType {
   BASIC
   STANDARD
   PREMIUM
+}
+
+enum MarketplaceCategory {
+  CV_TEMPLATE
+  PORTFOLIO
+  EBOOK
+  FICHE_REVISION
+  NOTION_TEMPLATE
+  EXCEL_TEMPLATE
+  UI_KIT
+}
+
+enum MarketplaceOrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+model MarketplaceItem {
+  id              Int                 @id @default(autoincrement())
+  title           String
+  description     String
+  category        MarketplaceCategory
+  price           Float
+  currency        String              @default("XOF")
+  previewImageUrl String?             @map("preview_image_url")
+  fileUrl         String?             @map("file_url")
+  isActive        Boolean             @default(true) @map("is_active")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  sellerId        Int?                @map("seller_id")
+
+  seller User? @relation(fields: [sellerId], references: [id])
+  orders MarketplaceOrder[]
+
+  @@index([category])
+  @@index([isActive])
+  @@map("marketplace_items")
+}
+
+model MarketplaceOrder {
+  id         Int                    @id @default(autoincrement())
+  itemId     Int                    @map("item_id")
+  buyerId    Int?                   @map("buyer_id")
+  buyerEmail String                 @map("buyer_email")
+  price      Float
+  currency   String                 @default("XOF")
+  status     MarketplaceOrderStatus @default(PENDING)
+  createdAt  DateTime               @default(now()) @map("created_at")
+
+  item  MarketplaceItem @relation(fields: [itemId], references: [id])
+  buyer User?           @relation(fields: [buyerId], references: [id])
+
+  @@index([itemId])
+  @@index([buyerEmail])
+  @@map("marketplace_orders")
 }

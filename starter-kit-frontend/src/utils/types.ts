@@ -5,6 +5,14 @@ export type PC_Category = 'basic' | 'standard' | 'premium';
 export type ApplicationStatus = 'pending' | 'reviewed' | 'accepted' | 'rejected';
 export type PCRequestStatus = 'pending' | 'approved' | 'partially_funded' | 'fully_funded' | 'delivered';
 export type JobStatus = 'active' | 'expired' | 'draft';
+export type MarketplaceCategory =
+  | 'cv_template'
+  | 'portfolio'
+  | 'ebook'
+  | 'revision_sheet'
+  | 'notion_template'
+  | 'excel_template'
+  | 'ui_kit';
 
 export interface User {
   id: string;
@@ -80,6 +88,19 @@ export interface Job {
   status: JobStatus;
   createdAt: Date | string;
   applications?: JobApplication[];
+}
+
+export interface MarketplaceItem {
+  id: string;
+  title: string;
+  description: string;
+  category: MarketplaceCategory;
+  price: number;
+  currency: string;
+  previewImageUrl?: string;
+  sellerName?: string;
+  createdAt: Date | string;
+  isActive: boolean;
 }
 
 export interface JobApplication {

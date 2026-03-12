@@ -25,6 +25,7 @@ export const fr = {
     home: 'Accueil',
     donate: 'Faire un don',
     jobs: 'Offres de stage',
+    marketplace: 'Marketplace etudiants',
     requestPc: 'Demander un PC',
     impact: 'Impact',
     commonFund: 'Cagnotte commune',

@@ -33,6 +33,7 @@ export const Header: React.FC = () => {
       ]
     },
     { name: tx('header.jobs'), href: '/jobs' },
+    { name: tx('header.marketplace'), href: '/marketplace' },
     { name: tx('header.requestPc'), href: '/candidate/pc-request' },
     { name: tx('header.impact'), href: '/impact' },
   ];

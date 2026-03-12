@@ -1,5 +1,5 @@
 import { JobRecord, PcRequestRecord } from "@/utils/frontendStore";
-import { JobApplication } from "@/utils/types";
+import { JobApplication, MarketplaceCategory, MarketplaceItem } from "@/utils/types";
 
 type BackendJob = {
   id: number;
@@ -43,6 +43,25 @@ type BackendPcRequest = {
       lastName?: string;
     } | null;
   };
+};
+
+type BackendMarketplaceItem = {
+  id: number;
+  title: string;
+  description: string;
+  category:
+    | "CV_TEMPLATE"
+    | "PORTFOLIO"
+    | "EBOOK"
+    | "FICHE_REVISION"
+    | "NOTION_TEMPLATE"
+    | "EXCEL_TEMPLATE"
+    | "UI_KIT";
+  price: number;
+  currency: string;
+  previewImageUrl?: string | null;
+  isActive: boolean;
+  createdAt: string;
 };
 
 export function mapBackendJobToJobRecord(job: BackendJob): JobRecord {
@@ -108,5 +127,40 @@ export function mapBackendJobApplicationToRecord(application: BackendJobApplicat
     coverLetter: application.message || "",
     status: application.status === "ACCEPTED" ? "accepted" : application.status === "REJECTED" ? "rejected" : "pending",
     appliedAt: application.createdAt,
+  };
+}
+
+function mapMarketplaceCategory(category: BackendMarketplaceItem["category"]): MarketplaceCategory {
+  switch (category) {
+    case "CV_TEMPLATE":
+      return "cv_template";
+    case "PORTFOLIO":
+      return "portfolio";
+    case "EBOOK":
+      return "ebook";
+    case "FICHE_REVISION":
+      return "revision_sheet";
+    case "NOTION_TEMPLATE":
+      return "notion_template";
+    case "EXCEL_TEMPLATE":
+      return "excel_template";
+    case "UI_KIT":
+      return "ui_kit";
+    default:
+      return "cv_template";
+  }
+}
+
+export function mapBackendMarketplaceItem(item: BackendMarketplaceItem): MarketplaceItem {
+  return {
+    id: String(item.id),
+    title: item.title,
+    description: item.description,
+    category: mapMarketplaceCategory(item.category),
+    price: item.price,
+    currency: item.currency || "XOF",
+    previewImageUrl: item.previewImageUrl || undefined,
+    createdAt: item.createdAt,
+    isActive: item.isActive,
   };
 }
