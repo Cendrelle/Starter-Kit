@@ -9,3 +9,5 @@
 - [x] Frontend: mapping DTO marketplace + types
 - [x] Navigation: lien Marketplace dans le header
 - [x] Frontend: formulaire publication + branchement achat (`/api/marketplace/items/:id/purchase`)
+- [x] Frontend: tokens API appliques hors admin + redirection login vers marketplace
+- [x] Frontend: boutons CTA vendeur relies (register + guide ancre)

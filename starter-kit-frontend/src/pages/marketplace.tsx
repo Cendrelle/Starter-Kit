@@ -252,12 +252,21 @@ export default function MarketplacePage() {
         fileUrl: '',
       });
     } catch (error: any) {
-      const message = error?.response?.data?.message || '';
-      if (message === 'No token provided' || error?.response?.status === 401) {
+      const status = error?.response?.status;
+      const message = error?.response?.data?.message || error?.response?.data?.error || '';
+      if (message === 'No token provided' || status === 401) {
         setPublishAuthHint(tr('Connexion requise pour publier.', 'Login required to publish.'));
         return;
       }
-      setPublishError(message || tr('Publication impossible.', 'Could not publish resource.'));
+      if (status === 400) {
+        setPublishError(message || tr('Champs invalides.', 'Invalid fields.'));
+        return;
+      }
+      if (status === 403) {
+        setPublishError(tr('Acces refuse.', 'Access denied.'));
+        return;
+      }
+      setPublishError(message || tr('Erreur serveur lors de la publication.', 'Server error while publishing.'));
     } finally {
       setIsPublishing(false);
     }
@@ -300,7 +309,7 @@ export default function MarketplacePage() {
               )}
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/candidate/login">
+              <Link href="/candidate/login?next=/marketplace">
                 <Button>
                   {tr('Publier une ressource', 'Publish a resource')}
                 </Button>
@@ -536,6 +545,53 @@ export default function MarketplacePage() {
         )}
       </section>
 
+      <section id="seller-guide" className="container-custom pb-16">
+        <div className="rounded-3xl bg-white p-8 shadow-lg">
+          <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr]">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+                {tr('Guide vendeur', 'Seller guide')}
+              </p>
+              <h3 className="mt-3 text-2xl font-bold text-slate-900">
+                {tr('Publier en 4 etapes simples', 'Publish in 4 simple steps')}
+              </h3>
+              <p className="mt-3 text-slate-600">
+                {tr(
+                  'Rassemblez vos fichiers, ajoutez une description claire et commencez a vendre en quelques minutes.',
+                  'Gather your files, add a clear description, and start selling in minutes.'
+                )}
+              </p>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                {[
+                  tr('1. Creez votre compte vendeur', '1. Create your seller account'),
+                  tr('2. Publiez votre ressource', '2. Publish your resource'),
+                  tr('3. Fixez un prix juste', '3. Set a fair price'),
+                  tr('4. Recevez vos ventes', '4. Receive your sales'),
+                ].map((step) => (
+                  <div key={step} className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+                    {step}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-6 text-white">
+              <h4 className="text-lg font-semibold">{tr('Conseils rapides', 'Quick tips')}</h4>
+              <ul className="mt-4 space-y-3 text-sm text-white/80">
+                <li>{tr('Utilisez des apercus clairs et lisibles.', 'Use clear, readable previews.')}</li>
+                <li>{tr('Ajoutez un plan ou sommaire.', 'Include an outline or summary.')}</li>
+                <li>{tr('Mentionnez les formats disponibles.', 'Mention available formats.')}</li>
+                <li>{tr('Mettez a jour regulierement.', 'Update regularly.')}</li>
+              </ul>
+              <div className="mt-6">
+                <Link href="/candidate/register">
+                  <Button variant="outline">{tr('Commencer', 'Get started')}</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="bg-slate-900">
         <div className="container-custom py-14 text-white">
           <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr]">
@@ -551,8 +607,12 @@ export default function MarketplacePage() {
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <Button>{tr('Devenir vendeur', 'Become a seller')}</Button>
-              <Button variant="outline">{tr('Voir le guide', 'View the guide')}</Button>
+              <Link href="/candidate/register">
+                <Button>{tr('Devenir vendeur', 'Become a seller')}</Button>
+              </Link>
+              <Link href="#seller-guide">
+                <Button variant="outline">{tr('Voir le guide', 'View the guide')}</Button>
+              </Link>
             </div>
           </div>
         </div>

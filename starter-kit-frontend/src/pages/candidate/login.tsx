@@ -36,7 +36,12 @@ export default function CandidateLogin() {
         ...prev,
         candidateSession: session,
       }));
-      router.push('/candidate/profile');
+      const nextPath = typeof router.query.next === 'string' ? router.query.next : '';
+      if (nextPath && nextPath.startsWith('/')) {
+        router.push(nextPath);
+      } else {
+        router.push('/candidate/profile');
+      }
     } catch (err: any) {
       const message = err?.response?.data?.message || tr('Connexion impossible.', 'Could not login.');
       setError(message);

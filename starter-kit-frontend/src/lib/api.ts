@@ -12,8 +12,8 @@ export const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const path = typeof window !== "undefined" ? window.location.pathname : "";
-  const scope = path.startsWith("/admin") ? "admin" : path.startsWith("/candidate") ? "candidate" : undefined;
-  const token = getAuthToken(scope);
+  const isAdminRoute = path.startsWith("/admin");
+  const token = getAuthToken(isAdminRoute ? "admin" : "candidate");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
